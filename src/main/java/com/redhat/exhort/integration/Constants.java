@@ -62,6 +62,8 @@ public final class Constants {
   public static final String NPM_PKG_MANAGER = "npm";
   public static final String PYPI_PKG_MANAGER = "pypi";
   public static final String GOLANG_PKG_MANAGER = "golang";
+  public static final String DEB_PKG_MANAGER = "deb";
+  public static final String RPM_PKG_MANAGER = "rpm";
 
   public static final String PKG_MANAGER_PROPERTY = "pkgManager";
   public static final String REQUEST_CONTENT_PROPERTY = "requestContent";

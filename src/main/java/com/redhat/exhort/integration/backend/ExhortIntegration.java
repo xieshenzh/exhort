@@ -29,14 +29,18 @@ import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.AggregationStrategies;
 import org.apache.camel.builder.endpoint.EndpointRouteBuilder;
+import org.apache.camel.component.jackson.JacksonDataFormat;
 import org.apache.camel.component.micrometer.MicrometerConstants;
 import org.apache.camel.component.micrometer.routepolicy.MicrometerRoutePolicyFactory;
+import org.apache.camel.model.dataformat.JsonLibrary;
 
 import com.redhat.exhort.analytics.AnalyticsService;
+import com.redhat.exhort.api.v4.AnalysisReport;
 import com.redhat.exhort.integration.Constants;
 import com.redhat.exhort.integration.backend.sbom.SbomParserFactory;
 import com.redhat.exhort.integration.providers.ProviderAggregationStrategy;
 import com.redhat.exhort.integration.providers.VulnerabilityProvider;
+import com.redhat.exhort.integration.report.ReportAggregationStrategy;
 import com.redhat.exhort.integration.trustedcontent.TcResponseAggregation;
 import com.redhat.exhort.monitoring.MonitoringProcessor;
 
@@ -107,6 +111,9 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .post("/v4/analysis")
         .routeId("restAnalysis")
         .to("direct:v4analysis")
+      .post("/dev/multiAnalysis")
+        .routeId("restMultiAnalysis")
+        .to("direct:multiAnalysis")
       .get("/v3/token")
         .routeId("v3restTokenValidation")
         .to("direct:validateToken")
@@ -123,6 +130,29 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .routeId("v4Analysis")
       .setProperty(Constants.API_VERSION_PROPERTY, constant(Constants.API_VERSION_V4))
       .to(direct("analysis"));
+
+    from(direct("multiAnalysis"))
+      .routeId("multiAnalysis")
+      .setProperty(Constants.API_VERSION_PROPERTY, constant(Constants.API_VERSION_V4))
+      .setProperty(PROVIDERS_PARAM, method(vulnerabilityProvider, "getProvidersFromQueryParam"))
+      .setProperty(REQUEST_CONTENT_PROPERTY, method(BackendUtils.class, "getResponseMediaType"))
+      .choice()
+      .when(exchangeProperty(REQUEST_CONTENT_PROPERTY).isEqualTo(Constants.DEFAULT_ACCEPT_MEDIA_TYPE))
+        .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER))
+        .process(this::processMultiAnalysisRequest)
+        .split(body(), AggregationStrategies.beanAllowNull(ReportAggregationStrategy.class, "aggregateJsonReport"))
+        .parallelProcessing()
+          .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
+          .enrich(direct("getTrustedContent"), tcResponseAggregation)
+          .to(direct("findVulnerabilities"))
+          .transform().method(ProviderAggregationStrategy.class, "toReport")
+          .to(direct("report"))
+          .unmarshal()
+          .json(JsonLibrary.Jackson, AnalysisReport.class)
+        .end()
+        .marshal(new JacksonDataFormat())
+        .process(this::cleanUpHeaders)
+      .endChoice();
 
     from(direct("analysis"))
       .routeId("dependencyAnalysis")
@@ -209,6 +239,21 @@ public class ExhortIntegration extends EndpointRouteBuilder {
     var tree = parser.parse(exchange.getIn().getBody(InputStream.class));
     exchange.setProperty(Constants.DEPENDENCY_TREE_PROPERTY, tree);
     exchange.getIn().setBody(tree);
+  }
+
+  private void processMultiAnalysisRequest(Exchange exchange) {
+    exchange.getIn().removeHeader(Constants.ACCEPT_HEADER);
+    exchange.getIn().removeHeader(Constants.ACCEPT_ENCODING_HEADER);
+    ContentType ct;
+    try {
+      ct = new ContentType(exchange.getIn().getHeader(Exchange.CONTENT_TYPE, String.class));
+    } catch (ParseException e) {
+      throw new ClientErrorException(Response.Status.UNSUPPORTED_MEDIA_TYPE, e);
+    }
+    var parser = SbomParserFactory.newInstance(ct.getBaseType());
+    exchange.setProperty(Constants.SBOM_TYPE_PARAM, ct.getBaseType());
+    var trees = parser.parseTrees(exchange.getIn().getBody(InputStream.class));
+    exchange.getIn().setBody(trees);
   }
 
   private void cleanUpHeaders(Exchange exchange) {

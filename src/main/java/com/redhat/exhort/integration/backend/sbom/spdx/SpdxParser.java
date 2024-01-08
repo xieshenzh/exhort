@@ -20,12 +20,8 @@ package com.redhat.exhort.integration.backend.sbom.spdx;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -66,6 +62,13 @@ public class SpdxParser extends SbomParser {
           "Unable to parse received SPDX SBOM file: " + e.getMessage(),
           Response.Status.BAD_REQUEST);
     }
+  }
+
+  @Override
+  protected List<DependencyTree> buildTrees(InputStream input) {
+    throw new RuntimeException(
+        new UnsupportedEncodingException(
+            "Analysing packages from multiple ecosystems is not supported with Spdx"));
   }
 
   private Map<PackageRef, DirectDependency> buildDeps(SpdxWrapper wrapper) {

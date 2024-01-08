@@ -49,6 +49,8 @@ public class SnykRequestBuilder {
               add(Constants.NPM_PKG_MANAGER);
               add(Constants.PYPI_PKG_MANAGER);
               add(Constants.GOLANG_PKG_MANAGER);
+              add(Constants.DEB_PKG_MANAGER);
+              add(Constants.RPM_PKG_MANAGER);
             }
           });
 

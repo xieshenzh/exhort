@@ -18,15 +18,11 @@
 
 package com.redhat.exhort.integration.backend.sbom.cyclonedx;
 
+import static com.redhat.exhort.integration.providers.snyk.SnykRequestBuilder.SUPPORTED_PKG_MANAGERS;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.cyclonedx.model.Bom;
@@ -35,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.TokenBuffer;
+import com.github.packageurl.MalformedPackageURLException;
+import com.github.packageurl.PackageURL;
 import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.config.ObjectMapperProducer;
 import com.redhat.exhort.integration.backend.sbom.SbomParser;
@@ -52,32 +51,115 @@ public class CycloneDxParser extends SbomParser {
   @Override
   protected DependencyTree buildTree(InputStream input) {
     try {
-      var treeBuilder = DependencyTree.builder();
       var bom = mapper.readValue(input, Bom.class);
-      Map<String, PackageRef> componentPurls = new HashMap<>();
-      if (bom.getComponents() != null) {
-        componentPurls.putAll(
-            bom.getComponents().stream()
-                .filter(c -> c.getBomRef() != null)
-                .collect(Collectors.toMap(Component::getBomRef, c -> new PackageRef(c.getPurl()))));
-      }
+      return buildTree(bom);
+    } catch (IOException | IllegalStateException e) {
+      LOGGER.error("Unable to parse the CycloneDX SBOM file", e);
+      throw new ClientErrorException(
+          "Unable to parse received CycloneDX SBOM file: " + e.getMessage(),
+          Response.Status.BAD_REQUEST);
+    }
+  }
 
-      if (bom.getMetadata() == null) {
-        throw new ClientErrorException(
-            "Unable to parse CycloneDX SBOM. Missing metadata.", Response.Status.BAD_REQUEST);
+  private DependencyTree buildTree(Bom bom) throws IllegalStateException {
+    var treeBuilder = DependencyTree.builder();
+    Map<String, PackageRef> componentPurls = new HashMap<>();
+    if (bom.getComponents() != null) {
+      componentPurls.putAll(
+          bom.getComponents().stream()
+              .filter(c -> c.getBomRef() != null)
+              .collect(Collectors.toMap(Component::getBomRef, c -> new PackageRef(c.getPurl()))));
+    }
+
+    if (bom.getMetadata() == null) {
+      throw new ClientErrorException(
+          "Unable to parse CycloneDX SBOM. Missing metadata.", Response.Status.BAD_REQUEST);
+    }
+    var rootComponent = Optional.ofNullable(bom.getMetadata().getComponent());
+    PackageRef rootRef = null;
+    if (rootComponent.isPresent()) {
+      if (rootComponent.get().getPurl() != null) {
+        rootRef = new PackageRef(rootComponent.get().getPurl());
+      } else if (componentPurls.containsKey(rootComponent.get().getBomRef())) {
+        rootRef = componentPurls.get(rootComponent.get().getBomRef());
+      } else {
+        throw new IllegalStateException("Cannot retrieve the purl for the root component");
       }
-      var rootComponent = Optional.ofNullable(bom.getMetadata().getComponent());
-      PackageRef rootRef = null;
-      if (rootComponent.isPresent()) {
-        if (rootComponent.get().getPurl() != null) {
-          rootRef = new PackageRef(rootComponent.get().getPurl());
-        } else if (componentPurls.containsKey(rootComponent.get().getBomRef())) {
-          rootRef = componentPurls.get(rootComponent.get().getBomRef());
-        } else {
-          throw new IllegalStateException("Cannot retrieve the purl for the root component");
-        }
-      }
-      return treeBuilder.dependencies(buildDependencies(bom, componentPurls, rootRef)).build();
+    }
+    return treeBuilder.dependencies(buildDependencies(bom, componentPurls, rootRef)).build();
+  }
+
+  @Override
+  protected List<DependencyTree> buildTrees(InputStream input) {
+    try {
+      var bom = mapper.readValue(input, Bom.class);
+
+      Set<String> types =
+          bom.getComponents().stream()
+              .map(
+                  c -> {
+                    try {
+                      return c.getPurl() == null ? null : new PackageURL(c.getPurl()).getType();
+                    } catch (MalformedPackageURLException e) {
+                      LOGGER.warn("Failed to parse component purl {} in SBOM", c.getPurl());
+                      // Ignore this component if its purl is not valid
+                      return null;
+                    }
+                  })
+              .filter(SUPPORTED_PKG_MANAGERS::contains)
+              .collect(Collectors.toSet());
+
+      TokenBuffer buffer = new TokenBuffer(mapper, false);
+      mapper.writeValue(buffer, bom);
+
+      return types.stream()
+          .map(
+              t -> {
+                Bom b;
+                try {
+                  b = mapper.readValue(buffer.asParser(), Bom.class);
+                } catch (IOException e) {
+                  LOGGER.warn("Failed to generate SBOM object");
+                  return null;
+                }
+
+                b.setComponents(
+                    bom.getComponents().stream()
+                        .filter(
+                            c -> {
+                              try {
+                                return c.getPurl() != null
+                                    && t.equals(new PackageURL(c.getPurl()).getType());
+                              } catch (MalformedPackageURLException e) {
+                                LOGGER.warn(
+                                    "Failed to parse component purl {} in SBOM", c.getPurl());
+                                // Ignore this component if its purl is not valid
+                                return false;
+                              }
+                            })
+                        .collect(Collectors.toList()));
+
+                b.setDependencies(
+                    bom.getDependencies().stream()
+                        .filter(
+                            d -> {
+                              try {
+                                return d.getRef() != null
+                                    && t.equals(new PackageURL(d.getRef()).getType());
+                              } catch (MalformedPackageURLException e) {
+                                LOGGER.warn(
+                                    "Failed to parse dependency purl {} in SBOM", d.getRef());
+                                // Ignore this component if its purl is not valid
+                                return false;
+                              }
+                            })
+                        .collect(Collectors.toList()));
+
+                return b;
+              })
+          .filter(Objects::nonNull)
+          .map(this::buildTree)
+          .toList();
     } catch (IOException | IllegalStateException e) {
       LOGGER.error("Unable to parse the CycloneDX SBOM file", e);
       throw new ClientErrorException(

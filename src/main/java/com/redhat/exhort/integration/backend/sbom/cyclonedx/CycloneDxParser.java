@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.Dependency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,37 +124,53 @@ public class CycloneDxParser extends SbomParser {
                   return null;
                 }
 
-                b.setComponents(
-                    bom.getComponents().stream()
-                        .filter(
-                            c -> {
-                              try {
-                                return c.getPurl() != null
-                                    && t.equals(new PackageURL(c.getPurl()).getType());
-                              } catch (MalformedPackageURLException e) {
-                                LOGGER.warn(
-                                    "Failed to parse component purl {} in SBOM", c.getPurl());
-                                // Ignore this component if its purl is not valid
-                                return false;
-                              }
-                            })
-                        .collect(Collectors.toList()));
+                if (bom.getComponents() != null) {
+                  b.setComponents(
+                      bom.getComponents().stream()
+                          .filter(
+                              c -> {
+                                try {
+                                  return c.getPurl() != null
+                                      && t.equals(new PackageURL(c.getPurl()).getType());
+                                } catch (MalformedPackageURLException e) {
+                                  LOGGER.warn(
+                                      "Failed to parse component purl {} in SBOM", c.getPurl());
+                                  // Ignore this component if its purl is not valid
+                                  return false;
+                                }
+                              })
+                          .collect(
+                              Collectors.toCollection(
+                                  () -> new TreeSet<>(Comparator.comparing(Component::getPurl))))
+                          .stream()
+                          .toList());
+                } else {
+                  b.setComponents(Collections.emptyList());
+                }
 
-                b.setDependencies(
-                    bom.getDependencies().stream()
-                        .filter(
-                            d -> {
-                              try {
-                                return d.getRef() != null
-                                    && t.equals(new PackageURL(d.getRef()).getType());
-                              } catch (MalformedPackageURLException e) {
-                                LOGGER.warn(
-                                    "Failed to parse dependency purl {} in SBOM", d.getRef());
-                                // Ignore this component if its purl is not valid
-                                return false;
-                              }
-                            })
-                        .collect(Collectors.toList()));
+                if (bom.getDependencies() != null) {
+                  b.setDependencies(
+                      bom.getDependencies().stream()
+                          .filter(
+                              d -> {
+                                try {
+                                  return d.getRef() != null
+                                      && t.equals(new PackageURL(d.getRef()).getType());
+                                } catch (MalformedPackageURLException e) {
+                                  LOGGER.warn(
+                                      "Failed to parse dependency purl {} in SBOM", d.getRef());
+                                  // Ignore this component if its purl is not valid
+                                  return false;
+                                }
+                              })
+                          .collect(
+                              Collectors.toCollection(
+                                  () -> new TreeSet<>(Comparator.comparing(Dependency::getRef))))
+                          .stream()
+                          .toList());
+                } else {
+                  b.setDependencies(Collections.emptyList());
+                }
 
                 return b;
               })

@@ -33,6 +33,7 @@ import org.spdx.library.model.SpdxPackage;
 import org.spdx.library.model.enumerations.RelationshipType;
 import org.spdx.storage.simple.InMemSpdxStore;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.integration.backend.sbom.SbomParser;
 import com.redhat.exhort.model.DependencyTree;
@@ -65,7 +66,7 @@ public class SpdxParser extends SbomParser {
   }
 
   @Override
-  protected List<DependencyTree> buildTrees(InputStream input) {
+  protected List<DependencyTree> buildTrees(JsonNode input) {
     throw new RuntimeException(
         new UnsupportedEncodingException(
             "Analysing packages from multiple ecosystems is not supported with Spdx"));

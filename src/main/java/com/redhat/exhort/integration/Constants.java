@@ -86,6 +86,8 @@ public final class Constants {
   public static final String DEFAULT_ACCEPT_MEDIA_TYPE = MediaType.APPLICATION_JSON;
   public static final boolean DEFAULT_VERBOSE_MODE = false;
 
+  public static final String SBOM_METADATA_PURL = "sbomMetadataPurl";
+
   public static final List<String> PROVIDERS =
       Collections.unmodifiableList(
           new ArrayList<>() {

@@ -21,6 +21,7 @@ package com.redhat.exhort.integration.backend.sbom;
 import java.io.InputStream;
 import java.util.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.redhat.exhort.model.DependencyTree;
 
 public abstract class SbomParser {
@@ -31,9 +32,9 @@ public abstract class SbomParser {
 
   protected abstract DependencyTree buildTree(InputStream input);
 
-  public List<DependencyTree> parseTrees(InputStream input) {
+  public List<DependencyTree> parseTrees(JsonNode input) {
     return buildTrees(input);
   }
 
-  protected abstract List<DependencyTree> buildTrees(InputStream input);
+  protected abstract List<DependencyTree> buildTrees(JsonNode input);
 }

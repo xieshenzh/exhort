@@ -23,6 +23,7 @@ import static com.redhat.exhort.integration.Constants.REQUEST_CONTENT_PROPERTY;
 import static com.redhat.exhort.integration.Constants.VERBOSE_MODE_HEADER;
 
 import java.io.InputStream;
+import java.util.AbstractMap;
 import java.util.Arrays;
 
 import org.apache.camel.Exchange;
@@ -33,7 +34,9 @@ import org.apache.camel.component.jackson.JacksonDataFormat;
 import org.apache.camel.component.micrometer.MicrometerConstants;
 import org.apache.camel.component.micrometer.routepolicy.MicrometerRoutePolicyFactory;
 import org.apache.camel.model.dataformat.JsonLibrary;
+import org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.redhat.exhort.analytics.AnalyticsService;
 import com.redhat.exhort.api.v4.AnalysisReport;
 import com.redhat.exhort.integration.Constants;
@@ -113,7 +116,7 @@ public class ExhortIntegration extends EndpointRouteBuilder {
         .to("direct:v4analysis")
       .post("/dev/multiAnalysis")
         .routeId("restMultiAnalysis")
-        .to("direct:multiAnalysis")
+        .to("direct:multiBomAnalysis")
       .get("/v3/token")
         .routeId("v3restTokenValidation")
         .to("direct:validateToken")
@@ -131,14 +134,23 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .setProperty(Constants.API_VERSION_PROPERTY, constant(Constants.API_VERSION_V4))
       .to(direct("analysis"));
 
-    from(direct("multiAnalysis"))
-      .routeId("multiAnalysis")
+    from(direct("multiBomAnalysis"))
+      .routeId("multiBomAnalysis")
       .setProperty(Constants.API_VERSION_PROPERTY, constant(Constants.API_VERSION_V4))
       .setProperty(PROVIDERS_PARAM, method(vulnerabilityProvider, "getProvidersFromQueryParam"))
       .setProperty(REQUEST_CONTENT_PROPERTY, method(BackendUtils.class, "getResponseMediaType"))
-      .choice()
-      .when(exchangeProperty(REQUEST_CONTENT_PROPERTY).isEqualTo(Constants.DEFAULT_ACCEPT_MEDIA_TYPE))
-        .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER))
+      .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER))
+      .unmarshal()
+      .json(JsonLibrary.Jackson, JsonNode[].class)
+      .split(body(), new GroupedBodyAggregationStrategy())
+      .parallelProcessing()
+        .to(direct("multiAnalysis"))
+      .end()
+      .marshal(new JacksonDataFormat())
+      .process(this::cleanUpHeaders);
+
+      from(direct("multiAnalysis"))
+        .routeId("multiAnalysis")
         .process(this::processMultiAnalysisRequest)
         .split(body(), AggregationStrategies.beanAllowNull(ReportAggregationStrategy.class, "aggregateJsonReport"))
         .parallelProcessing()
@@ -146,13 +158,16 @@ public class ExhortIntegration extends EndpointRouteBuilder {
           .enrich(direct("getTrustedContent"), tcResponseAggregation)
           .to(direct("findVulnerabilities"))
           .transform().method(ProviderAggregationStrategy.class, "toReport")
-          .to(direct("report"))
+          .setProperty(Constants.REPORT_PROPERTY, body())
+          .to(direct("jsonReport"))
           .unmarshal()
           .json(JsonLibrary.Jackson, AnalysisReport.class)
         .end()
-        .marshal(new JacksonDataFormat())
-        .process(this::cleanUpHeaders)
-      .endChoice();
+        .process(exchange -> {
+          String purl = exchange.getProperty(Constants.SBOM_METADATA_PURL, String.class);
+          AnalysisReport report = exchange.getIn().getBody(AnalysisReport.class);
+          exchange.getIn().setBody(new AbstractMap.SimpleEntry<>(purl, report));
+        });
 
     from(direct("analysis"))
       .routeId("dependencyAnalysis")
@@ -252,7 +267,10 @@ public class ExhortIntegration extends EndpointRouteBuilder {
     }
     var parser = SbomParserFactory.newInstance(ct.getBaseType());
     exchange.setProperty(Constants.SBOM_TYPE_PARAM, ct.getBaseType());
-    var trees = parser.parseTrees(exchange.getIn().getBody(InputStream.class));
+    JsonNode body = exchange.getIn().getBody(JsonNode.class);
+    String purl = body.get("metadata").get("component").get("purl").asText();
+    exchange.setProperty(Constants.SBOM_METADATA_PURL, purl);
+    var trees = parser.parseTrees(body);
     exchange.getIn().setBody(trees);
   }
 

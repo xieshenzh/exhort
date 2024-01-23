@@ -20,11 +20,11 @@ import {
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import {useAppContext} from '../App';
 import {ChartCard} from './ChartCard';
-import {getSourceName, getSources} from '../api/report';
+import {getSourceName, getSources, Report} from '../api/report';
 import RedhatIcon from "@patternfly/react-icons/dist/esm/icons/redhat-icon";
 import SecurityCheckIcon from '../images/security-check.svg';
 
-export const SummaryCard = () => {
+export const SummaryCard = ({report}: { report: Report }) => {
   const appContext = useAppContext();
   return (
     <Grid hasGutter>
@@ -53,7 +53,7 @@ export const SummaryCard = () => {
             </DescriptionListGroup>
             <DescriptionList isAutoFit style={{paddingTop: "10px"}}>
               {
-                getSources(appContext.report).map((source, index) => {
+                getSources(report).map((source, index) => {
                   if (Object.keys(source.report).length > 0) {
                     return (
                       <DescriptionListGroup key={index}
@@ -91,7 +91,7 @@ export const SummaryCard = () => {
             <CardBody>
               <DescriptionListDescription>
                 <List isPlain>
-                  {getSources(appContext.report).map((source, index) => {
+                  {getSources(report).map((source, index) => {
                     if (Object.keys(source.report).length > 0) {
                       return (
                         <ListItem>

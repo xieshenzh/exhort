@@ -25,6 +25,7 @@ import static com.redhat.exhort.integration.Constants.VERBOSE_MODE_HEADER;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import com.redhat.exhort.integration.report.ReportTemplate;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.AggregationStrategies;
@@ -70,6 +71,9 @@ public class ExhortIntegration extends EndpointRouteBuilder {
   @Inject MonitoringProcessor monitoringProcessor;
 
   @Inject TcResponseAggregation tcResponseAggregation;
+
+    @Inject
+    ReportTemplate reportTemplate;
 
   ExhortIntegration(MeterRegistry registry) {
     this.registry = registry;
@@ -146,7 +150,9 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .parallelProcessing()
         .to(direct("multiAnalysis"))
       .end()
-      .marshal(new JacksonDataFormat())
+      .setHeader(Exchange.CONTENT_TYPE, constant(MediaType.TEXT_HTML))
+      .setBody(method(reportTemplate, "setVariables"))
+      .to(freemarker("report.ftl"))
       .process(this::cleanUpHeaders);
 
       from(direct("multiAnalysis"))

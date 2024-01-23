@@ -23,7 +23,6 @@ import static com.redhat.exhort.integration.Constants.REQUEST_CONTENT_PROPERTY;
 import static com.redhat.exhort.integration.Constants.VERBOSE_MODE_HEADER;
 
 import java.io.InputStream;
-import java.util.AbstractMap;
 import java.util.Arrays;
 
 import org.apache.camel.Exchange;
@@ -38,6 +37,7 @@ import org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.redhat.exhort.analytics.AnalyticsService;
+import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.api.v4.AnalysisReport;
 import com.redhat.exhort.integration.Constants;
 import com.redhat.exhort.integration.backend.sbom.SbomParserFactory;
@@ -165,8 +165,10 @@ public class ExhortIntegration extends EndpointRouteBuilder {
         .end()
         .process(exchange -> {
           String purl = exchange.getProperty(Constants.SBOM_METADATA_PURL, String.class);
-          AnalysisReport report = exchange.getIn().getBody(AnalysisReport.class);
-          exchange.getIn().setBody(new AbstractMap.SimpleEntry<>(purl, report));
+          AnalysisReport body = exchange.getIn().getBody(AnalysisReport.class);
+            com.redhat.exhort.integration.api.AnalysisReport report = new com.redhat.exhort.integration.api.AnalysisReport()
+                    .packageRef(new PackageRef(purl)).scanned(body.getScanned()).providers(body.getProviders());
+          exchange.getIn().setBody(report);
         });
 
     from(direct("analysis"))

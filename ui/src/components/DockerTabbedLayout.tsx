@@ -1,14 +1,15 @@
 import React from 'react';
-import {PageSection, PageSectionVariants, Tab, Tabs, TabTitleText,} from '@patternfly/react-core';
+import {Grid, GridItem, PageSection, PageSectionVariants, Tab, Tabs, TabTitleText,} from '@patternfly/react-core';
 import {useAppContext} from '../App';
-import {DepCompoundTable} from "./DepCompoundTable";
-import {getSourceName, getSources, Report} from "../api/report";
+import {SummaryCard} from '../components/SummaryCard';
+import {TabbedLayout} from "../components/TabbedLayout";
+import {ReportErrorAlert} from '../components/ReportErrorAlert';
 
-export const TabbedLayout = ({report}: { report: Report }) => {
+export const DockerTabbedLayout = () => {
   const appContext = useAppContext();
-  const sources = getSources(report);
+  const reportArray = appContext.report;
 
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(getSourceName(sources[0]));
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(reportArray[0].packageRef);
   const [isTabsLightScheme] = React.useState<boolean>(true);
 
   // Toggle currently active tab
@@ -19,17 +20,26 @@ export const TabbedLayout = ({report}: { report: Report }) => {
     setActiveTabKey(tabIndex);
   };
 
-  const tabs = sources.map((source) => {
-    const srcName = getSourceName(source);
+  const tabs = reportArray.map((report) => {
+    const srcName = report.packageRef;
     return (
       <Tab
         eventKey={srcName}
         title={<TabTitleText>{srcName}</TabTitleText>}
         aria-label={`${srcName} source`}
       >
-        <PageSection variant={PageSectionVariants.default}>
-          <DepCompoundTable name={srcName} dependencies={source.report.dependencies} />
+        <ReportErrorAlert report={report}/>
+        <PageSection variant={PageSectionVariants.light}>
+          <Grid hasGutter>
+            <GridItem>
+              <SummaryCard report={report}/>
+            </GridItem>
+          </Grid>
         </PageSection>
+        <PageSection variant={PageSectionVariants.default}>
+          <TabbedLayout report={report}/>
+        </PageSection>
+
       </Tab>
     );
   });

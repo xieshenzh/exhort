@@ -2,11 +2,11 @@ import React from 'react';
 import {PageSection, PageSectionVariants, Tab, Tabs, TabTitleText,} from '@patternfly/react-core';
 import {useAppContext} from '../App';
 import {DepCompoundTable} from "./DepCompoundTable";
-import {getSourceName, getSources} from "../api/report";
+import {getSourceName, getSources, Report} from "../api/report";
 
-export const TabbedLayout = () => {
+export const TabbedLayout = ({report}: { report: Report }) => {
   const appContext = useAppContext();
-  const sources = getSources(appContext.report);
+  const sources = getSources(report);
 
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(getSourceName(sources[0]));
   const [isTabsLightScheme] = React.useState<boolean>(true);

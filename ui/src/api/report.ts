@@ -2,7 +2,7 @@ import { getSignUpLink } from "../utils/utils";
 
 export interface AppData {
   providerPrivateData?: string[] | null;
-  report: Report;
+  report: Report | Report[];
   ossIssueTemplate: string;
   snykIssueTemplate: string;
   nvdIssueTemplate: string;
@@ -22,7 +22,13 @@ export interface Report {
       sources?: {
         [key: string]: SourceReport;
       };
+      unscanned?: {
+          ref: string;
+      }[];
     };
+  };
+  root?: {
+    ref: string;
   };
 }
 
@@ -61,8 +67,8 @@ export interface TransitiveDependency {
 
 export interface Dependency {
   ref: string;
-  issues?: Vulnerability[];
-  transitive?: TransitiveDependency[];
+  issues?: Vulnerability[] | null;
+  transitive?: TransitiveDependency[] | null;
   recommendation?: string | null;
   highestVulnerability?: Vulnerability | null;
 }
@@ -131,10 +137,10 @@ export interface Vulnerability {
   id: string;
   title: string;
   source: string;
-  cvss?: Cvss;
+  cvss?: Cvss | null;
   cvssScore: number;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  cves?: string[];
+  cves?: string[] | null;
   unique: boolean;
   remediation?: {
     fixedIn?: string[] | null;
@@ -142,7 +148,7 @@ export interface Vulnerability {
       ref: string | '';
       status: string | null;
       justification: string | null;
-    };
+    } | null;
   };
 }
 
@@ -155,9 +161,9 @@ export interface Cvss {
   confidentialityImpact?: string;
   integrityImpact?: string;
   availabilityImpact?: string;
-  exploitCodeMaturity?: string;
-  remediationLevel?: string;
-  reportConfidence?: string;
+  exploitCodeMaturity?: string | null;
+  remediationLevel?: string | null;
+  reportConfidence?: string | null;
   cvss: string;
 }
 

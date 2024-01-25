@@ -31,8 +31,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.redhat.exhort.api.v4.AnalysisReport;
 import com.redhat.exhort.integration.Constants;
+import com.redhat.exhort.integration.api.AnalysisReport;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
@@ -52,7 +52,7 @@ public class ReportTemplate {
   String ossIssuePathRegex;
 
   public Map<String, Object> setVariables(
-      @Body AnalysisReport report,
+      @Body List<AnalysisReport> report,
       @ExchangeProperty(Constants.PROVIDER_PRIVATE_DATA_PROPERTY) List<String> providerPrivateData)
       throws JsonMappingException, JsonProcessingException, IOException {
 

@@ -148,7 +148,13 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .parallelProcessing()
         .to(direct("multiAnalysis"))
       .end()
-      .marshal(new JacksonDataFormat())
+      .choice()
+        .when(exchangeProperty(Constants.REQUEST_CONTENT_PROPERTY).isEqualTo(MediaType.TEXT_HTML))
+          .setProperty(Constants.REPORT_PROPERTY, body())
+          .to(direct("htmlReport"))
+        .otherwise()
+          .marshal(new JacksonDataFormat())
+      .end()
       .process(this::cleanUpHeaders);
 
       from(direct("multiAnalysis"))

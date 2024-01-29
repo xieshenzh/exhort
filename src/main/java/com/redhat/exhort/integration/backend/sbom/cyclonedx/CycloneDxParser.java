@@ -31,7 +31,6 @@ import org.cyclonedx.model.Dependency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 import com.github.packageurl.MalformedPackageURLException;
@@ -92,9 +91,9 @@ public class CycloneDxParser extends SbomParser {
   }
 
   @Override
-  protected List<DependencyTree> buildTrees(JsonNode input) {
+  protected List<DependencyTree> buildTrees(Map<?, ?> map) {
     try {
-      var bom = mapper.treeToValue(input, Bom.class);
+      var bom = mapper.convertValue(map, Bom.class);
 
       Set<String> types =
           bom.getComponents().stream()

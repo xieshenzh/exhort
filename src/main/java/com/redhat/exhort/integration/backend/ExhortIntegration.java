@@ -24,6 +24,8 @@ import static com.redhat.exhort.integration.Constants.VERBOSE_MODE_HEADER;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
@@ -35,7 +37,6 @@ import org.apache.camel.component.micrometer.routepolicy.MicrometerRoutePolicyFa
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.redhat.exhort.analytics.AnalyticsService;
 import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.api.v4.AnalysisReport;
@@ -143,7 +144,7 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .setProperty(REQUEST_CONTENT_PROPERTY, method(BackendUtils.class, "getResponseMediaType"))
       .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER))
       .unmarshal()
-      .json(JsonLibrary.Jackson, JsonNode[].class)
+      .json(JsonLibrary.Jackson, List.class)
       .split(body(), new GroupedBodyAggregationStrategy())
       .parallelProcessing()
         .to(direct("multiAnalysis"))
@@ -286,10 +287,24 @@ public class ExhortIntegration extends EndpointRouteBuilder {
     }
     var parser = SbomParserFactory.newInstance(ct.getBaseType());
     exchange.setProperty(Constants.SBOM_TYPE_PARAM, ct.getBaseType());
-    JsonNode body = exchange.getIn().getBody(JsonNode.class);
-    String purl = body.get("metadata").get("component").get("purl").asText();
+    String purl = null;
+    Map<?, ?> map = exchange.getIn().getBody(Map.class);
+    Object metadata = map.get("metadata");
+    if (metadata instanceof Map) {
+      Object component = ((Map<?, ?>) metadata).get("component");
+      if (component instanceof Map) {
+        Object p = ((Map<?, ?>) component).get("purl");
+        if (p instanceof String) {
+          purl = (String) p;
+        }
+      }
+    }
+    if (purl == null) {
+      throw new ClientErrorException(
+          "Package URL is not set in the SBOM", Response.Status.BAD_REQUEST);
+    }
     exchange.setProperty(Constants.SBOM_METADATA_PURL, purl);
-    var trees = parser.parseTrees(body);
+    var trees = parser.parseTrees(map);
     exchange.getIn().setBody(trees);
   }
 

@@ -18,9 +18,25 @@ export const useAppContext = (): AppData => useContext(AppContext);
 function App() {
   return (
     <AppContext.Provider value={data}>
-      <PageSection variant={PageSectionVariants.default}>
-        <DockerTabbedLayout />
-      </PageSection>
+      {Array.isArray(data.report) ? (
+        <PageSection variant={PageSectionVariants.default}>
+          <DockerTabbedLayout report={data.report}/>
+        </PageSection>
+      ) : (
+        <>
+          <ReportErrorAlert report={data.report}/>
+          <PageSection variant={PageSectionVariants.light}>
+            <Grid hasGutter>
+              <GridItem>
+                <SummaryCard report={data.report}/>
+              </GridItem>
+            </Grid>
+          </PageSection>
+          <PageSection variant={PageSectionVariants.default}>
+            <TabbedLayout report={data.report}/>
+          </PageSection>
+        </>
+      )}
     </AppContext.Provider>
   );
 }

@@ -1,27 +1,25 @@
 import React from 'react';
 import {Grid, GridItem, PageSection, PageSectionVariants, Tab, Tabs, TabTitleText,} from '@patternfly/react-core';
-import {useAppContext} from '../App';
 import {SummaryCard} from '../components/SummaryCard';
 import {TabbedLayout} from "../components/TabbedLayout";
 import {ReportErrorAlert} from '../components/ReportErrorAlert';
+import {Report} from '../api/report';
 
-export const DockerTabbedLayout = () => {
-  const appContext = useAppContext();
-  const reportArray = appContext.report;
+export const DockerTabbedLayout = ({report}: { report: Report[] }) => {
 
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(reportArray[0].packageRef);
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(report[0]?.packageRef || '');
   const [isTabsLightScheme] = React.useState<boolean>(true);
 
   // Toggle currently active tab
   const handleTabClick = (
-      event: React.MouseEvent<any> | React.KeyboardEvent | MouseEvent,
-      tabIndex: string | number,
+    event: React.MouseEvent<any> | React.KeyboardEvent | MouseEvent,
+    tabIndex: string | number,
   ) => {
     setActiveTabKey(tabIndex);
   };
 
-  const tabs = reportArray.map((report) => {
-    const srcName = report.packageRef;
+  const tabs = report.map((report) => {
+    const srcName = report.packageRef || '';
     return (
       <Tab
         eventKey={srcName}
@@ -45,16 +43,16 @@ export const DockerTabbedLayout = () => {
   });
 
   return (
-      <div>
-        <Tabs
-            activeKey={activeTabKey}
-            onSelect={handleTabClick}
-            aria-label="Providers"
-            role="region"
-            variant={isTabsLightScheme ? 'light300' : 'default'}
-            isBox>
-          {tabs}
-        </Tabs>
-      </div>
+    <div>
+      <Tabs
+        activeKey={activeTabKey}
+        onSelect={handleTabClick}
+        aria-label="Providers"
+        role="region"
+        variant={isTabsLightScheme ? 'light300' : 'default'}
+        isBox>
+        {tabs}
+      </Tabs>
+    </div>
   );
 };

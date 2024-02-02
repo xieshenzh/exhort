@@ -2,7 +2,7 @@ import { getSignUpLink } from "../utils/utils";
 
 export interface AppData {
   providerPrivateData?: string[] | null;
-  report: Report[];
+  report: Report | Report[];
   ossIssueTemplate: string;
   snykIssueTemplate: string;
   nvdIssueTemplate: string;
@@ -23,7 +23,7 @@ export interface Report {
       };
     };
   };
-  packageRef: string;
+  packageRef?: string;
 }
 
 export interface ProviderStatus {

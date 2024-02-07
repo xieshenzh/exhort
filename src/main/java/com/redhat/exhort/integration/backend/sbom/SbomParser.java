@@ -19,6 +19,7 @@
 package com.redhat.exhort.integration.backend.sbom;
 
 import java.io.InputStream;
+import java.util.Collection;
 
 import com.redhat.exhort.model.DependencyTree;
 
@@ -29,4 +30,10 @@ public abstract class SbomParser {
   }
 
   protected abstract DependencyTree buildTree(InputStream input);
+
+  public Collection<DependencyTree> parseSboms(InputStream input) {
+    return buildTrees(input);
+  }
+
+  protected abstract Collection<DependencyTree> buildTrees(InputStream input);
 }

@@ -49,6 +49,7 @@ public final class Constants {
   public static final MediaType MULTIPART_MIXED_TYPE = new MediaType("multipart", "mixed");
   public static final String MULTIPART_MIXED = MULTIPART_MIXED_TYPE.toString();
   public static final String SPDX_MEDIATYPE_JSON = "application/vnd.spdx+json";
+  public static final String LIST_MEDIATYPE_PARAMETER = "list";
 
   public static final String SNYK_PROVIDER = "snyk";
   public static final String OSS_INDEX_PROVIDER = "oss-index";
@@ -77,6 +78,7 @@ public final class Constants {
   public static final String DEPENDENCY_TREE_PROPERTY = "dependencyTree";
   public static final String API_VERSION_PROPERTY = "apiVersion";
   public static final String GZIP_RESPONSE_PROPERTY = "gzipResponse";
+  public static final String SBOM_LIST_PROPERTY = "sbomList";
 
   public static final String API_VERSION_V4 = "v4";
   public static final String API_VERSION_V3 = "v3";

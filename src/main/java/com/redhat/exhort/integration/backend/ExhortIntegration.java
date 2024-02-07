@@ -163,9 +163,9 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       from(direct("analyzeSboms"))
         .routeId("analyzeSboms")
         .split(body(), new GroupedBodyAggregationStrategy())
-        .parallelProcessing()
-        .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
-        .to(direct("analyzeSbom"));
+          .parallelProcessing()
+            .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
+            .to(direct("analyzeSbom"));
 
       from(direct("findVulnerabilities"))
       .routeId("findVulnerabilities")

@@ -31,6 +31,7 @@ import org.apache.camel.builder.AggregationStrategies;
 import org.apache.camel.builder.endpoint.EndpointRouteBuilder;
 import org.apache.camel.component.micrometer.MicrometerConstants;
 import org.apache.camel.component.micrometer.routepolicy.MicrometerRoutePolicyFactory;
+import org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy;
 
 import com.redhat.exhort.analytics.AnalyticsService;
 import com.redhat.exhort.integration.Constants;
@@ -138,9 +139,12 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .setProperty(REQUEST_CONTENT_PROPERTY, method(BackendUtils.class, "getResponseMediaType"))
       .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER))
       .process(this::processAnalysisRequest)
-      .enrich(direct("getTrustedContent"), tcResponseAggregation)
-      .to(direct("findVulnerabilities"))
-      .transform().method(ProviderAggregationStrategy.class, "toReport")
+      .choice()
+        .when(exchangeProperty(Constants.SBOM_LIST_PROPERTY).isEqualTo("true"))
+          .to(direct("analyzeSboms"))
+        .otherwise()
+          .to(direct("analyzeSbom"))
+      .end()
       .to(direct("report"))
       .to(seda("analyticsTrackAnalysis"))
       .setHeader(Constants.EXHORT_REQUEST_ID_HEADER, exchangeProperty(Constants.EXHORT_REQUEST_ID_HEADER))
@@ -150,7 +154,20 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .end()
       .process(this::cleanUpHeaders);
 
-    from(direct("findVulnerabilities"))
+      from(direct("analyzeSbom"))
+        .routeId("analyzeSbom")
+        .enrich(direct("getTrustedContent"), tcResponseAggregation)
+        .to(direct("findVulnerabilities"))
+        .transform().method(ProviderAggregationStrategy.class, "toReport");
+
+      from(direct("analyzeSboms"))
+        .routeId("analyzeSboms")
+        .split(body(), new GroupedBodyAggregationStrategy())
+        .parallelProcessing()
+        .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
+        .to(direct("analyzeSbom"));
+
+      from(direct("findVulnerabilities"))
       .routeId("findVulnerabilities")
       .recipientList(method(vulnerabilityProvider, "getProviderEndpoints"))
       .aggregationStrategy(AggregationStrategies.beanAllowNull(ProviderAggregationStrategy.class, "aggregate"))
@@ -217,9 +234,15 @@ public class ExhortIntegration extends EndpointRouteBuilder {
     }
     var parser = SbomParserFactory.newInstance(ct.getBaseType());
     exchange.setProperty(Constants.SBOM_TYPE_PARAM, ct.getBaseType());
-    var tree = parser.parse(exchange.getIn().getBody(InputStream.class));
-    exchange.setProperty(Constants.DEPENDENCY_TREE_PROPERTY, tree);
-    exchange.getIn().setBody(tree);
+    if (Boolean.parseBoolean(ct.getParameter(Constants.LIST_MEDIATYPE_PARAMETER))) {
+      var trees = parser.parseSboms(exchange.getIn().getBody(InputStream.class));
+      exchange.setProperty(Constants.SBOM_LIST_PROPERTY, "true");
+      exchange.getIn().setBody(trees);
+    } else {
+      var tree = parser.parse(exchange.getIn().getBody(InputStream.class));
+      exchange.setProperty(Constants.DEPENDENCY_TREE_PROPERTY, tree);
+      exchange.getIn().setBody(tree);
+    }
   }
 
   private void cleanUpHeaders(Exchange exchange) {

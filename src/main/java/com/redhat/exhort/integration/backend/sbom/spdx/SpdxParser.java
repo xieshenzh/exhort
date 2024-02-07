@@ -68,6 +68,11 @@ public class SpdxParser extends SbomParser {
     }
   }
 
+  @Override
+  protected Collection<DependencyTree> buildTrees(InputStream input) {
+    return null;
+  }
+
   private Map<PackageRef, DirectDependency> buildDeps(SpdxWrapper wrapper) {
     var packages = wrapper.getPackages();
     Map<String, Set<String>> links = new HashMap<>();

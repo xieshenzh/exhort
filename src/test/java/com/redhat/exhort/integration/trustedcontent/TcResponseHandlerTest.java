@@ -28,10 +28,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Test;
 
 import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.integration.Constants;
+import com.redhat.exhort.model.trustedcontent.IndexedRecommendation;
 
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -42,6 +44,9 @@ class TcResponseHandlerTest {
 
   @Inject TcResponseHandler handler;
 
+  @ConfigProperty(name = "trustedcontent.recommended.ubi")
+  String recommendedUBIPurl;
+
   @Test
   void testAggregation() throws IOException {
     var response =
@@ -49,7 +54,8 @@ class TcResponseHandlerTest {
             getClass()
                 .getClassLoader()
                 .getResourceAsStream("__files/trustedcontent/simple.json")
-                .readAllBytes());
+                .readAllBytes(),
+            null);
     assertNotNull(response);
     assertTrue(response.status().getOk());
     assertEquals("OK", response.status().getMessage());
@@ -92,7 +98,8 @@ class TcResponseHandlerTest {
             getClass()
                 .getClassLoader()
                 .getResourceAsStream("__files/trustedcontent/empty_report.json")
-                .readAllBytes());
+                .readAllBytes(),
+            null);
     assertNotNull(response);
     assertTrue(response.status().getOk());
     assertEquals("OK", response.status().getMessage());
@@ -100,6 +107,29 @@ class TcResponseHandlerTest {
     assertEquals(Constants.TRUSTED_CONTENT_PROVIDER, response.status().getName());
 
     assertTrue(response.recommendations().isEmpty());
+  }
+
+  @Test
+  void testSbomId() throws IOException {
+    String sbomId = "pkg:oci/quay.io/test-app@0.0.1";
+    var response =
+        handler.parseResponse(
+            getClass()
+                .getClassLoader()
+                .getResourceAsStream("__files/trustedcontent/empty_report.json")
+                .readAllBytes(),
+            "pkg:oci/quay.io/test-app@0.0.1");
+    assertNotNull(response);
+    assertTrue(response.status().getOk());
+    assertEquals("OK", response.status().getMessage());
+    assertEquals(200, response.status().getCode());
+    assertEquals(Constants.TRUSTED_CONTENT_PROVIDER, response.status().getName());
+
+    PackageRef sbomRef = new PackageRef(sbomId);
+    IndexedRecommendation recommendation =
+        new IndexedRecommendation(new PackageRef(recommendedUBIPurl), null);
+    assertEquals(1, response.recommendations().size());
+    assertEquals(recommendation, response.recommendations().get(sbomRef));
   }
 
   private static final record ExpectedRecommendation(String version, Set<String> cves) {}

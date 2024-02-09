@@ -31,7 +31,7 @@ import com.redhat.exhort.api.PackageRef;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
-public record DependencyTree(Map<PackageRef, DirectDependency> dependencies) {
+public record DependencyTree(Map<PackageRef, DirectDependency> dependencies, PackageRef rootRef) {
 
   public static final PackageRef getDefaultRoot(String type) {
     return PackageRef.builder()
@@ -88,14 +88,20 @@ public record DependencyTree(Map<PackageRef, DirectDependency> dependencies) {
   public static class Builder {
 
     public Map<PackageRef, DirectDependency> dependencies;
+    public PackageRef rootRef;
 
     public Builder dependencies(Map<PackageRef, DirectDependency> dependencies) {
       this.dependencies = dependencies;
       return this;
     }
 
+    public Builder rootRef(PackageRef rootRef) {
+      this.rootRef = rootRef;
+      return this;
+    }
+
     public DependencyTree build() {
-      return new DependencyTree(dependencies);
+      return new DependencyTree(dependencies, rootRef);
     }
   }
 }

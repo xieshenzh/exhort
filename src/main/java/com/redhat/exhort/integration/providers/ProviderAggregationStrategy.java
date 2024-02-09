@@ -24,8 +24,10 @@ import java.util.Map;
 import org.apache.camel.Body;
 import org.apache.camel.ExchangeProperty;
 
+import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.api.v4.AnalysisReport;
 import com.redhat.exhort.api.v4.ProviderReport;
+import com.redhat.exhort.api.v4.RootComponent;
 import com.redhat.exhort.api.v4.Scanned;
 import com.redhat.exhort.integration.Constants;
 import com.redhat.exhort.model.DependencyTree;
@@ -48,12 +50,14 @@ public class ProviderAggregationStrategy {
   public AnalysisReport toReport(
       @Body Map<String, ProviderReport> reports,
       @ExchangeProperty(Constants.DEPENDENCY_TREE_PROPERTY) DependencyTree tree,
-      @ExchangeProperty(Constants.TRUSTED_CONTENT_PROVIDER) TrustedContentResponse tcResponse) {
+      @ExchangeProperty(Constants.TRUSTED_CONTENT_PROVIDER) TrustedContentResponse tcResponse,
+      @ExchangeProperty(Constants.ROOT_REF_PROPERTY) PackageRef rootRef) {
 
     reports.put(
         Constants.TRUSTED_CONTENT_PROVIDER, new ProviderReport().status(tcResponse.status()));
     var scanned = new Scanned().direct(tree.directCount()).transitive(tree.transitiveCount());
     scanned.total(scanned.getDirect() + scanned.getTransitive());
-    return new AnalysisReport().providers(reports).scanned(scanned);
+    var rootComponent = new RootComponent().ref(rootRef);
+    return new AnalysisReport().providers(reports).scanned(scanned).root(rootComponent);
   }
 }

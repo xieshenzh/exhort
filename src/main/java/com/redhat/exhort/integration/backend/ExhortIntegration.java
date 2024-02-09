@@ -39,6 +39,7 @@ import com.redhat.exhort.integration.backend.sbom.SbomParserFactory;
 import com.redhat.exhort.integration.providers.ProviderAggregationStrategy;
 import com.redhat.exhort.integration.providers.VulnerabilityProvider;
 import com.redhat.exhort.integration.trustedcontent.TcResponseAggregation;
+import com.redhat.exhort.model.DependencyTree;
 import com.redhat.exhort.monitoring.MonitoringProcessor;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -154,20 +155,21 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .end()
       .process(this::cleanUpHeaders);
 
-      from(direct("analyzeSbom"))
-        .routeId("analyzeSbom")
-        .enrich(direct("getTrustedContent"), tcResponseAggregation)
-        .to(direct("findVulnerabilities"))
-        .transform().method(ProviderAggregationStrategy.class, "toReport");
+    from(direct("analyzeSbom"))
+      .routeId("analyzeSbom")
+      .setProperty(Constants.ROOT_REF_PROPERTY, bodyAs(DependencyTree.class).method("rootRef"))
+      .enrich(direct("getTrustedContent"), tcResponseAggregation)
+      .to(direct("findVulnerabilities"))
+      .transform().method(ProviderAggregationStrategy.class, "toReport");
 
-      from(direct("analyzeSboms"))
-        .routeId("analyzeSboms")
-        .split(body(), new GroupedBodyAggregationStrategy())
-          .parallelProcessing()
-            .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
-            .to(direct("analyzeSbom"));
+    from(direct("analyzeSboms"))
+      .routeId("analyzeSboms")
+      .split(body(), new GroupedBodyAggregationStrategy())
+        .parallelProcessing()
+          .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
+          .to(direct("analyzeSbom"));
 
-      from(direct("findVulnerabilities"))
+    from(direct("findVulnerabilities"))
       .routeId("findVulnerabilities")
       .recipientList(method(vulnerabilityProvider, "getProviderEndpoints"))
       .aggregationStrategy(AggregationStrategies.beanAllowNull(ProviderAggregationStrategy.class, "aggregate"))

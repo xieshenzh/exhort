@@ -55,7 +55,7 @@ public class SpdxParser extends SbomParser {
       var inputStore = new MultiFormatStore(new InMemSpdxStore(), Format.JSON_PRETTY);
       var wrapper = new SpdxWrapper(inputStore, input);
       var deps = buildDeps(wrapper);
-      var tree = new DependencyTree(deps);
+      var tree = new DependencyTree(deps, null);
       return tree;
     } catch (SpdxValidationException e) {
       LOGGER.info("Invalid SPDX SBOM received", e.getMessage());

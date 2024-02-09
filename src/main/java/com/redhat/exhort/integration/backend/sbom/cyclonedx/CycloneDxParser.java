@@ -80,7 +80,10 @@ public class CycloneDxParser extends SbomParser {
         rootRef = componentPurls.get(rootComponent.get().getBomRef());
       }
     }
-    return treeBuilder.dependencies(buildDependencies(bom, componentPurls, rootRef)).build();
+    return treeBuilder
+        .dependencies(buildDependencies(bom, componentPurls, rootRef))
+        .rootRef(rootRef)
+        .build();
   }
 
   @Override

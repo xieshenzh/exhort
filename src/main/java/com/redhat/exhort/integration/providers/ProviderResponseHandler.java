@@ -19,12 +19,7 @@
 package com.redhat.exhort.integration.providers;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -83,9 +78,24 @@ public abstract class ProviderResponseHandler {
       return newExchange;
     }
     if (oldExchange.status() != null && !Boolean.TRUE.equals(oldExchange.status().getOk())) {
+      if (oldExchange.unscanned() == null) {
+        if (newExchange.unscanned() != null) {
+          return new ProviderResponse(
+              oldExchange.issues(), oldExchange.status(), newExchange.unscanned());
+        }
+      }
+      if (newExchange.unscanned() != null) {
+        oldExchange.unscanned().addAll(newExchange.unscanned());
+      }
       return oldExchange;
     }
-    var exchange = new ProviderResponse(new HashMap<>(), oldExchange.status());
+    var exchange = new ProviderResponse(new HashMap<>(), oldExchange.status(), new HashSet<>());
+    if (oldExchange.unscanned() != null) {
+      exchange.unscanned().addAll(oldExchange.unscanned());
+    }
+    if (newExchange.unscanned() != null) {
+      exchange.unscanned().addAll(newExchange.unscanned());
+    }
     if (oldExchange.issues() != null) {
       exchange.issues().putAll(oldExchange.issues());
     }
@@ -108,7 +118,7 @@ public abstract class ProviderResponseHandler {
                 exchange.issues().put(k, newExchange.issues().get(k));
               });
     } else if (Boolean.FALSE.equals(newExchange.status().getOk())) {
-      return new ProviderResponse(exchange.issues(), newExchange.status());
+      return new ProviderResponse(exchange.issues(), newExchange.status(), exchange.unscanned());
     }
     return exchange;
   }
@@ -165,7 +175,7 @@ public abstract class ProviderResponseHandler {
           .code(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
       LOGGER.warn("Unable to process request to: {}", getProviderName(), cause);
     }
-    ProviderResponse response = new ProviderResponse(null, status);
+    ProviderResponse response = new ProviderResponse(null, status, null);
     monitoringProcessor.processProviderError(exchange, exception, getProviderName());
     exchange.getMessage().setBody(response);
   }
@@ -209,7 +219,12 @@ public abstract class ProviderResponseHandler {
 
   public ProviderResponse emptyResponse(
       @ExchangeProperty(Constants.DEPENDENCY_TREE_PROPERTY) DependencyTree tree) {
-    return new ProviderResponse(Collections.emptyMap(), null);
+    return new ProviderResponse(Collections.emptyMap(), null, null);
+  }
+
+  public ProviderResponse unscannedResponse(
+      @ExchangeProperty(Constants.UNSCANNED_REFS_PROPERTY) Set<PackageRef> unscanned) {
+    return new ProviderResponse(Collections.emptyMap(), null, unscanned);
   }
 
   private Map<String, Map<String, List<Issue>>> splitIssuesBySource(
@@ -263,6 +278,26 @@ public abstract class ProviderResponseHandler {
                     k,
                     buildReportForSource(
                         sourcesIssues.get(k), tree, privateProviders, tcResponse)));
+    if (response.unscanned() != null && !response.unscanned().isEmpty()) {
+      List<DependencyReport> unscannedList =
+          response.unscanned().stream()
+              .map(packageRef -> new DependencyReport().ref(packageRef).scanned(false))
+              .toList();
+      reports
+          .values()
+          .forEach(
+              source -> {
+                if (source.getDependencies() == null) {
+                  source.setDependencies(new ArrayList<>());
+                }
+                source.getDependencies().addAll(unscannedList);
+
+                if (source.getSummary() == null) {
+                  source.setSummary(new SourceSummary());
+                }
+                source.getSummary().setUnscanned(unscannedList.size());
+              });
+    }
     return new ProviderReport().status(defaultOkStatus(getProviderName())).sources(reports);
   }
 

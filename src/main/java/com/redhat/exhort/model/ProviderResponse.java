@@ -20,8 +20,11 @@ package com.redhat.exhort.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.redhat.exhort.api.PackageRef;
 import com.redhat.exhort.api.v4.Issue;
 import com.redhat.exhort.api.v4.ProviderStatus;
 
-public record ProviderResponse(Map<String, List<Issue>> issues, ProviderStatus status) {}
+public record ProviderResponse(
+    Map<String, List<Issue>> issues, ProviderStatus status, Set<PackageRef> unscanned) {}

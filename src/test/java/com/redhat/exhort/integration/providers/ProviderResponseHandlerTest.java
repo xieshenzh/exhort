@@ -69,7 +69,10 @@ public class ProviderResponseHandlerTest {
     ProviderResponseHandler handler = new TestResponseHandler();
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issuesData, null), tree, null, EMPTY_TRUSTED_CONTENT_RESPONSE);
+            new ProviderResponse(issuesData, null, null),
+            tree,
+            null,
+            EMPTY_TRUSTED_CONTENT_RESPONSE);
     assertOkStatus(response);
     SourceSummary summary = getValidSource(response).getSummary();
 
@@ -120,7 +123,7 @@ public class ProviderResponseHandlerTest {
     DependencyTree tree = buildTree();
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issues, null), tree, null, EMPTY_TRUSTED_CONTENT_RESPONSE);
+            new ProviderResponse(issues, null, null), tree, null, EMPTY_TRUSTED_CONTENT_RESPONSE);
     assertOkStatus(response);
     assertEquals(1, response.getSources().size());
     Source report = response.getSources().get(TEST_SOURCE);
@@ -141,7 +144,10 @@ public class ProviderResponseHandlerTest {
 
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issues, null), buildTree(), null, EMPTY_TRUSTED_CONTENT_RESPONSE);
+            new ProviderResponse(issues, null, null),
+            buildTree(),
+            null,
+            EMPTY_TRUSTED_CONTENT_RESPONSE);
 
     assertOkStatus(response);
 
@@ -195,7 +201,10 @@ public class ProviderResponseHandlerTest {
 
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issues, null), buildTree(), null, EMPTY_TRUSTED_CONTENT_RESPONSE);
+            new ProviderResponse(issues, null, null),
+            buildTree(),
+            null,
+            EMPTY_TRUSTED_CONTENT_RESPONSE);
 
     assertOkStatus(response);
     DependencyReport reportHighest = getValidSource(response).getDependencies().get(0);
@@ -222,7 +231,10 @@ public class ProviderResponseHandlerTest {
 
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issues, null), buildTree(), null, EMPTY_TRUSTED_CONTENT_RESPONSE);
+            new ProviderResponse(issues, null, null),
+            buildTree(),
+            null,
+            EMPTY_TRUSTED_CONTENT_RESPONSE);
 
     assertOkStatus(response);
     DependencyReport highest = getValidSource(response).getDependencies().get(0);
@@ -240,7 +252,10 @@ public class ProviderResponseHandlerTest {
 
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issues, null), buildTree(), null, EMPTY_TRUSTED_CONTENT_RESPONSE);
+            new ProviderResponse(issues, null, null),
+            buildTree(),
+            null,
+            EMPTY_TRUSTED_CONTENT_RESPONSE);
 
     assertOkStatus(response);
     DependencyReport highest = getValidSource(response).getDependencies().get(0);
@@ -265,7 +280,7 @@ public class ProviderResponseHandlerTest {
 
     var report =
         handler.buildReport(
-            new ProviderResponse(issues, null),
+            new ProviderResponse(issues, null, null),
             buildTree(),
             null,
             new TrustedContentResponse(recommendations, null));
@@ -302,7 +317,7 @@ public class ProviderResponseHandlerTest {
 
     var report =
         handler.buildReport(
-            new ProviderResponse(issues, null),
+            new ProviderResponse(issues, null, null),
             buildTree(),
             null,
             new TrustedContentResponse(recommendations, null));
@@ -359,7 +374,7 @@ public class ProviderResponseHandlerTest {
 
     var report =
         handler.buildReport(
-            new ProviderResponse(issues, null),
+            new ProviderResponse(issues, null, null),
             buildTree(),
             null,
             new TrustedContentResponse(recommendations, null));

@@ -23,7 +23,9 @@ export interface Report {
       };
     };
   };
-  packageRef?: string;
+  root?: {
+    ref: string;
+  };
 }
 
 export interface ProviderStatus {
@@ -44,6 +46,7 @@ export interface Summary {
   low: number;
   remediations: number;
   recommendations: number;
+  unscanned?: number;
 }
 
 export interface TransitiveDependency {
@@ -65,6 +68,7 @@ export interface Dependency {
   transitive?: TransitiveDependency[] | null;
   recommendation?: string | null;
   highestVulnerability?: Vulnerability | null;
+  scanned?: boolean;
 }
 
 export function getSources(report: Report): SourceItem[] {

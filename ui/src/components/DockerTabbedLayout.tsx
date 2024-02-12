@@ -7,7 +7,7 @@ import {Report} from '../api/report';
 
 export const DockerTabbedLayout = ({report}: { report: Report[] }) => {
 
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(report[0]?.packageRef || '');
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(report[0]?.root?.ref || '');
   const [isTabsLightScheme] = React.useState<boolean>(true);
 
   // Toggle currently active tab
@@ -19,7 +19,7 @@ export const DockerTabbedLayout = ({report}: { report: Report[] }) => {
   };
 
   const tabs = report.map((report) => {
-    const srcName = report.packageRef || '';
+    const srcName = report.root?.ref || '';
     return (
       <Tab
         eventKey={srcName}

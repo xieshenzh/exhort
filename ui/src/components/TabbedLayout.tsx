@@ -1,11 +1,9 @@
 import React from 'react';
 import {PageSection, PageSectionVariants, Tab, Tabs, TabTitleText,} from '@patternfly/react-core';
-import {useAppContext} from '../App';
 import {DepCompoundTable} from "./DepCompoundTable";
 import {getSourceName, getSources, Report} from "../api/report";
 
 export const TabbedLayout = ({report}: { report: Report }) => {
-  const appContext = useAppContext();
   const sources = getSources(report);
 
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(getSourceName(sources[0]));

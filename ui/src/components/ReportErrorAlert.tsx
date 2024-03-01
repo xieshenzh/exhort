@@ -1,12 +1,10 @@
 import React from 'react';
 import {Alert, AlertVariant} from '@patternfly/react-core';
-import {uppercaseFirstLetter, hasSignUpTab} from '../utils/utils';
-import {useAppContext} from '../App';
+import {hasSignUpTab, uppercaseFirstLetter} from '../utils/utils';
 import {Report} from '../api/report';
 
 export const ReportErrorAlert = ({report}: { report: Report }) => {
 
-  const appContext = useAppContext();
   const errorReports = Object.keys(report.providers)
     .map(name => {
       return report.providers[name].status;

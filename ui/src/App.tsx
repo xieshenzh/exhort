@@ -1,7 +1,7 @@
 import {createContext, useContext} from 'react';
 import {Grid, GridItem, PageSection, PageSectionVariants} from '@patternfly/react-core';
 
-import {AppData} from './api/report';
+import {AppData, Report, ReportMap, isReportMap} from './api/report';
 import {SummaryCard} from './components/SummaryCard';
 import {ReportErrorAlert} from './components/ReportErrorAlert';
 
@@ -18,22 +18,22 @@ export const useAppContext = (): AppData => useContext(AppContext);
 function App() {
   return (
     <AppContext.Provider value={data}>
-      {Array.isArray(data.report) ? (
+      {isReportMap(data.report) ? (
         <PageSection variant={PageSectionVariants.default}>
-          <DockerTabbedLayout report={data.report}/>
+          <DockerTabbedLayout report={data.report as ReportMap}/>
         </PageSection>
       ) : (
         <>
-          <ReportErrorAlert report={data.report}/>
+          <ReportErrorAlert report={data.report as Report}/>
           <PageSection variant={PageSectionVariants.light}>
             <Grid hasGutter>
               <GridItem>
-                <SummaryCard report={data.report}/>
+                <SummaryCard report={data.report as Report}/>
               </GridItem>
             </Grid>
           </PageSection>
           <PageSection variant={PageSectionVariants.default}>
-            <TabbedLayout report={data.report}/>
+            <TabbedLayout report={data.report as Report}/>
           </PageSection>
         </>
       )}

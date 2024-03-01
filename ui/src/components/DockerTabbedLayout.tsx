@@ -3,11 +3,12 @@ import {Grid, GridItem, PageSection, PageSectionVariants, Tab, Tabs, TabTitleTex
 import {SummaryCard} from '../components/SummaryCard';
 import {TabbedLayout} from "../components/TabbedLayout";
 import {ReportErrorAlert} from '../components/ReportErrorAlert';
-import {Report} from '../api/report';
+import {ReportMap} from '../api/report';
+import {extractDependencyName} from '../utils/utils';
 
-export const DockerTabbedLayout = ({report}: { report: Report[] }) => {
+export const DockerTabbedLayout = ({report}: { report: ReportMap }) => {
 
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(report[0]?.root?.ref || '');
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(Object.keys(report)[0] || '');
   const [isTabsLightScheme] = React.useState<boolean>(true);
 
   // Toggle currently active tab
@@ -18,26 +19,24 @@ export const DockerTabbedLayout = ({report}: { report: Report[] }) => {
     setActiveTabKey(tabIndex);
   };
 
-  const tabs = report.map((report) => {
-    const srcName = report.root?.ref || '';
+  const tabs = Object.entries(report).map(([key, reportValue]) => {
     return (
       <Tab
-        eventKey={srcName}
-        title={<TabTitleText>{srcName}</TabTitleText>}
-        aria-label={`${srcName} source`}
+        eventKey={key}
+        title={<TabTitleText>{extractDependencyName(key, true)}</TabTitleText>} // Use the map key as title
+        aria-label={`${key} source`}
       >
-        <ReportErrorAlert report={report}/>
+        <ReportErrorAlert report={reportValue} />
         <PageSection variant={PageSectionVariants.light}>
           <Grid hasGutter>
             <GridItem>
-              <SummaryCard report={report}/>
+              <SummaryCard report={reportValue} />
             </GridItem>
           </Grid>
         </PageSection>
         <PageSection variant={PageSectionVariants.default}>
-          <TabbedLayout report={report}/>
+          <TabbedLayout report={reportValue} />
         </PageSection>
-
       </Tab>
     );
   });

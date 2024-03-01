@@ -18,14 +18,12 @@ import {
   TitleSizes,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
-import {useAppContext} from '../App';
 import {ChartCard} from './ChartCard';
 import {getSourceName, getSources, Report} from '../api/report';
 import RedhatIcon from "@patternfly/react-icons/dist/esm/icons/redhat-icon";
 import SecurityCheckIcon from '../images/security-check.svg';
 
 export const SummaryCard = ({report}: { report: Report }) => {
-  const appContext = useAppContext();
   return (
     <Grid hasGutter>
       <Title headingLevel="h3" size={TitleSizes['2xl']} style={{paddingLeft: '15px'}}>

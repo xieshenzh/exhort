@@ -18,24 +18,24 @@
 
 package com.redhat.exhort.integration.report;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.camel.Body;
-import org.apache.camel.ExchangeProperty;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.redhat.exhort.integration.Constants;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
-
 import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.camel.Body;
+import org.apache.camel.ExchangeProperty;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RegisterForReflection
 @ApplicationScoped
@@ -69,12 +69,18 @@ public class ReportTemplate {
     params.put("providerPrivateData", providerPrivateData);
     params.put("snykSignup", snykSignup);
     params.put("cveIssueTemplate", cveIssuePathRegex);
+    params.put("imageMapping", getImageMapping());
 
     ObjectWriter objectWriter = new ObjectMapper().writer();
     String appData = objectWriter.writeValueAsString(params);
     params.put("appData", appData);
 
     return params;
+  }
+
+  private String getImageMapping() throws IOException {
+    Path jsonFilePath = Paths.get("config", "image-mappings.json");
+    return new String(Files.readAllBytes(jsonFilePath));
   }
 
   @RegisterForReflection

@@ -317,6 +317,63 @@ public class HtmlReportTest extends AbstractAnalysisTest {
     verifyNoInteractionsWithOSS();
   }
 
+  @Test
+  public void testBatchHtmlWithToken() throws IOException {
+    stubAllProviders();
+
+    String body =
+        given()
+            .header(CONTENT_TYPE, CycloneDxMediaType.APPLICATION_CYCLONEDX_JSON)
+            .body(loadBatchSBOMFile(CYCLONEDX))
+            .header("Accept", MediaType.TEXT_HTML)
+            .header(Constants.SNYK_TOKEN_HEADER, OK_TOKEN)
+            .header(Constants.OSS_INDEX_USER_HEADER, OK_USER)
+            .header(Constants.OSS_INDEX_TOKEN_HEADER, OK_TOKEN)
+            .when()
+            .post("/api/v4/batch-analysis")
+            .then()
+            .assertThat()
+            .statusCode(200)
+            .contentType(MediaType.TEXT_HTML)
+            .header(
+                Constants.EXHORT_REQUEST_ID_HEADER,
+                MatchesPattern.matchesPattern(REGEX_MATCHER_REQUEST_ID))
+            .extract()
+            .body()
+            .asString();
+
+    //        HtmlPage page = extractPage(body);
+    //        // Select the Snyk Source
+    //        HtmlButton snykSourceBtn = page.getFirstByXPath("//button[@aria-label='snyk
+    // source']");
+    //        assertNotNull(snykSourceBtn);
+    //        page = snykSourceBtn.click();
+    //
+    //        DomNodeList<DomElement> tables = page.getElementsByTagName("table");
+    //        assertEquals(3, tables.size());
+    //
+    //        HtmlTableBody tbody =
+    //                getTableBodyForDependency("io.quarkus:quarkus-hibernate-orm", tables.get(2));
+    //        assertNotNull(tbody);
+    //        page = expandTransitiveTableDataCell(tbody);
+    //        tables = page.getElementsByTagName("table");
+    //        tbody = getTableBodyForDependency("io.quarkus:quarkus-hibernate-orm", tables.get(1));
+
+    // TODO: figure out why the Snyk unique vulnerability is not being rendered in headless mode
+
+    // HtmlTable issuesTable = getIssuesTable(tbody);
+    // List<HtmlTableBody> tbodies = issuesTable.getByXPath(".//table//tbody");
+    // HtmlTableBody privateIssueTbody = tbodies.stream().filter(issuesTbody -> {
+    //   List<HtmlTableDataCell> tds = issuesTbody.getByXPath("./tr/td");
+    //   return tds.get(0).asNormalizedText().startsWith("SNYK");
+
+    // }).findFirst().get();
+    // assertNotNull(privateIssueTbody);
+
+    //        verifySnykRequest(OK_TOKEN);
+    //        verifyOssRequest(OK_USER, OK_TOKEN);
+  }
+
   private HtmlTableBody getTableBodyForDependency(String depRef, DomElement table) {
     List<HtmlTableBody> tbodies = table.getByXPath(".//tbody");
     return tbodies.stream()

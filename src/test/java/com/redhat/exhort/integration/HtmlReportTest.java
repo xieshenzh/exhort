@@ -34,17 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.DomElement;
-import com.gargoylesoftware.htmlunit.html.DomNodeList;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlHeading2;
-import com.gargoylesoftware.htmlunit.html.HtmlHeading4;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.html.HtmlTable;
-import com.gargoylesoftware.htmlunit.html.HtmlTableBody;
-import com.gargoylesoftware.htmlunit.html.HtmlTableDataCell;
-import com.gargoylesoftware.htmlunit.html.HtmlTableHeaderCell;
-import com.gargoylesoftware.htmlunit.html.HtmlTableRow;
+import com.gargoylesoftware.htmlunit.html.*;
 
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -342,36 +332,17 @@ public class HtmlReportTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    //        HtmlPage page = extractPage(body);
-    //        // Select the Snyk Source
-    //        HtmlButton snykSourceBtn = page.getFirstByXPath("//button[@aria-label='snyk
-    // source']");
-    //        assertNotNull(snykSourceBtn);
-    //        page = snykSourceBtn.click();
-    //
-    //        DomNodeList<DomElement> tables = page.getElementsByTagName("table");
-    //        assertEquals(3, tables.size());
-    //
-    //        HtmlTableBody tbody =
-    //                getTableBodyForDependency("io.quarkus:quarkus-hibernate-orm", tables.get(2));
-    //        assertNotNull(tbody);
-    //        page = expandTransitiveTableDataCell(tbody);
-    //        tables = page.getElementsByTagName("table");
-    //        tbody = getTableBodyForDependency("io.quarkus:quarkus-hibernate-orm", tables.get(1));
+    HtmlPage page = extractPage(body);
+    // Find the root div element with id "root"
+    HtmlElement rootElement = page.getFirstByXPath("//div[@id='root']");
 
-    // TODO: figure out why the Snyk unique vulnerability is not being rendered in headless mode
-
-    // HtmlTable issuesTable = getIssuesTable(tbody);
-    // List<HtmlTableBody> tbodies = issuesTable.getByXPath(".//table//tbody");
-    // HtmlTableBody privateIssueTbody = tbodies.stream().filter(issuesTbody -> {
-    //   List<HtmlTableDataCell> tds = issuesTbody.getByXPath("./tr/td");
-    //   return tds.get(0).asNormalizedText().startsWith("SNYK");
-
-    // }).findFirst().get();
-    // assertNotNull(privateIssueTbody);
-
-    //        verifySnykRequest(OK_TOKEN);
-    //        verifyOssRequest(OK_USER, OK_TOKEN);
+    // Verify multi tab layout
+    List<HtmlElement> sectionElements = rootElement.getByXPath("./section");
+    assertEquals(1, sectionElements.size());
+    List<HtmlAnchor> anchorElements =
+        page.getByXPath(
+            "//a[contains(@href, 'https://catalog.redhat.com/software/containers/ubi9/')]");
+    assertTrue(!anchorElements.isEmpty(), "At least one href contains the desired substring");
   }
 
   private HtmlTableBody getTableBodyForDependency(String depRef, DomElement table) {
